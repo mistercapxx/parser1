@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@lapo/asn1js": "^1.2.4"
+  }
+}

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #container {
+      display: flex;
+      width: 80%;
+      height: 80%;
+      border: 1px solid #ccc;
+    }
+    #left-column, #right-column {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+    #left-column {
+      border-right: 1px solid #ccc;
+    }
+    #drop-area {
+      border: 2px dashed #aaa;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .certificate {
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+<div id="container">
+  <div id="left-column">
+    <div id="certificates"></div>
+  </div>
+  <div id="right-column">
+    <div id="details"></div>
+    <div id="drop-area">Drag Certificate</div>
+  </div>
+</div>
+
+<script src="libs/asn1.js"></script>
+<script>
+  function parseCertificate(certData) {
+    const result = window.ASN1.decode(certData);
+    if (result.typeName() !== 'SEQUENCE') {
+      throw 'Invalid certificate structure (expected SEQUENCE)';
+    }
+    const tbsCertificate = result.sub[0];
+
+    const certificateDetails = {
+      commonName: '',
+      issuerCN: '',
+      validFrom: '',
+      validTo: ''
+
+    };
+    return certificateDetails;
+  }
+
+  function displayCertificateDetails(certificateDetails) {
+    const detailsDiv = document.getElementById('details');
+    detailsDiv.innerHTML = `
+            <p><strong>Common Name:</strong> ${certificateDetails.commonName}</p>
+            <p><strong>Issuer CN:</strong> ${certificateDetails.issuerCN}</p>
+            <p><strong>Valid From:</strong> ${certificateDetails.validFrom}</p>
+            <p><strong>Valid To:</strong> ${certificateDetails.validTo}</p>
+        `;
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const certificateData = event.target.result;
+      const certificateDetails = parseCertificate(certificateData);
+
+      const certificates = JSON.parse(localStorage.getItem('certificates')) || [];
+      certificates.push(certificateDetails);
+      localStorage.setItem('certificates', JSON.stringify(certificates));
+
+      updateCertificateList();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function updateCertificateList() {
+    const certificatesDiv = document.getElementById('certificates');
+    certificatesDiv.innerHTML = '';
+    const certificates = JSON.parse(localStorage.getItem('certificates')) || [];
+    certificates.forEach((certificate, index) => {
+      const certificateDiv = document.createElement('div');
+      certificateDiv.classList.add('certificate');
+      certificateDiv.textContent = certificate.commonName;
+      certificateDiv.addEventListener('click', () => {
+        displayCertificateDetails(certificate);
+      });
+      certificatesDiv.appendChild(certificateDiv);
+    });
+  }
+
+  function init() {
+    updateCertificateList();
+    const dropArea = document.getElementById('drop-area');
+    dropArea.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+    dropArea.addEventListener('drop', handleDrop);
+  }
+
+  init();
+</script>
+</body>
+</html>
